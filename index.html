@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Spend Sales Estimator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF1F5;
+  --surface:#FFFFFF;
+  --ink:#16213A;
+  --muted:#5B6579;
+  --line:#D9DEE7;
+  --tv:#3D4FD9;
+  --radio:#E58A1F;
+  --news:#8C97AB;
+  --base:#C9D0DC;
+  --good:#1E7A55;
+  --warn:#B4531A;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 56px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0 0 8px;letter-spacing:-.01em}
+.sub{margin:0;color:var(--muted);max-width:56ch}
+.actions{display:flex;gap:10px}
+button.ghost{font:500 14px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer}
+button.ghost:hover{border-color:var(--ink)}
+:focus-visible{outline:3px solid var(--tv);outline-offset:2px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:24px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px}
+.panel h2{font-family:var(--display);font-size:20px;margin:0 0 4px}
+.panel .hint{margin:0 0 22px;color:var(--muted);font-size:14px}
+
+.channel{padding:18px 0;border-top:1px solid var(--line)}
+.channel:first-of-type{border-top:0;padding-top:0}
+.ch-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.ch-name{display:flex;align-items:center;gap:10px;font-weight:600}
+.dot{width:12px;height:12px;border-radius:3px;flex:none}
+.numbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:0 10px}
+.numbox:focus-within{border-color:var(--tv);box-shadow:0 0 0 3px rgba(61,79,217,.18)}
+.numbox span{color:var(--muted);font-size:14px}
+.numbox input{width:76px;border:0;background:transparent;font:600 16px var(--body);text-align:right;padding:8px 4px;color:var(--ink);font-variant-numeric:tabular-nums;outline:0}
+input[type=range]{width:100%;margin:0;accent-color:var(--c,var(--tv));height:28px}
+.ch-foot{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:2px}
+.flag{color:var(--warn);font-weight:500;min-height:1.4em;font-size:13px;margin-top:6px}
+
+.result{background:var(--ink);color:#fff;border-radius:12px;padding:32px 28px 28px}
+.result .label{font-size:14px;color:#B8C1D6;margin:0 0 6px}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(64px,10vw,104px);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.big small{font-size:.28em;font-weight:500;letter-spacing:0;color:#B8C1D6;margin-left:10px}
+.units{margin:10px 0 0;color:#DCE2EF}
+.err{margin:4px 0 0;font-size:14px;color:#B8C1D6}
+
+.mix{margin-top:28px}
+.mix h3{font-family:var(--display);font-size:16px;font-weight:500;margin:0 0 10px;color:#DCE2EF}
+.bar{display:flex;height:28px;border-radius:6px;overflow:hidden;background:#243253}
+.seg{height:100%;transition:width .25s ease;min-width:0}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:14px;font-size:14px}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend b{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.legend .dot{width:10px;height:10px}
+
+.lower{margin-top:24px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:12px 8px;border-top:1px solid var(--line)}
+th{font-weight:500;color:var(--muted);font-size:13px;border-top:0;padding-top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.insight{margin:16px 0 0;padding:14px 16px;background:var(--paper);border-radius:8px;font-size:15px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:560px){.stats{grid-template-columns:1fr}}
+.stat{border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.stat b{display:block;font-family:var(--display);font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.eq{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;background:var(--paper);border-radius:8px;padding:14px 16px;overflow-x:auto;white-space:nowrap}
+.note{font-size:13px;color:var(--muted);margin:14px 0 0;max-width:80ch}
+footer{margin-top:28px;font-size:13px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){.seg{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ad spend sales estimator</h1>
+      <p class="sub">Set a budget for each channel and see the sales a linear regression model expects, and which channel is driving them.</p>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="avg" type="button">Use average budget</button>
+      <button class="ghost" id="zero" type="button">Clear all</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="in-h">
+      <h2 id="in-h">Advertising budget</h2>
+      <p class="hint">Amounts are in thousands of dollars. Drag a slider or type a value.</p>
+
+      <div class="channel" style="--c:var(--tv)">
+        <div class="ch-head">
+          <label class="ch-name" for="tv-n"><span class="dot" style="background:var(--tv)"></span>TV</label>
+          <div class="numbox"><span>$</span><input id="tv-n" type="number" min="0" step="0.1" inputmode="decimal"><span>k</span></div>
+        </div>
+        <input id="tv-r" type="range" min="0" max="300" step="0.1" aria-label="TV budget slider">
+        <div class="ch-foot"><span>$0k</span><span>Training range $0.7k to $296.4k</span></div>
+        <div class="flag" id="tv-f" role="status"></div>
+      </div>
+
+      <div class="channel" style="--c:var(--radio)">
+        <div class="ch-head">
+          <label class="ch-name" for="radio-n"><span class="dot" style="background:var(--radio)"></span>Radio</label>
+          <div class="numbox"><span>$</span><input id="radio-n" type="number" min="0" step="0.1" inputmode="decimal"><span>k</span></div>
+        </div>
+        <input id="radio-r" type="range" min="0" max="50" step="0.1" aria-label="Radio budget slider">
+        <div class="ch-foot"><span>$0k</span><span>Training range $0k to $49.6k</span></div>
+        <div class="flag" id="radio-f" role="status"></div>
+      </div>
+
+      <div class="channel" style="--c:var(--news)">
+        <div class="ch-head">
+          <label class="ch-name" for="news-n"><span class="dot" style="background:var(--news)"></span>Newspaper</label>
+          <div class="numbox"><span>$</span><input id="news-n" type="number" min="0" step="0.1" inputmode="decimal"><span>k</span></div>
+        </div>
+        <input id="news-r" type="range" min="0" max="115" step="0.1" aria-label="Newspaper budget slider">
+        <div class="ch-foot"><span>$0k</span><span>Training range $0.3k to $114k</span></div>
+        <div class="flag" id="news-f" role="status"></div>
+      </div>
+    </section>
+
+    <section class="result" aria-labelledby="res-h" aria-live="polite">
+      <p class="label" id="res-h">Expected sales</p>
+      <div class="big"><span id="out">0.0</span><small>thousand units</small></div>
+      <p class="units" id="units"></p>
+      <p class="err" id="err"></p>
+
+      <div class="mix">
+        <h3>Where the sales come from</h3>
+        <div class="bar" id="bar" role="img" aria-label="Share of expected sales by source"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel lower" aria-labelledby="eff-h">
+    <h2 id="eff-h">What each extra $1,000 buys</h2>
+    <p class="hint">Holding the other two channels fixed, this is the sales gain per additional $1k spent.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Channel</th><th class="num">Added sales per $1k</th><th class="num">Compared with TV</th></tr></thead>
+        <tbody id="eff"></tbody>
+      </table>
+    </div>
+    <p class="insight" id="insight"></p>
+  </section>
+
+  <section class="panel lower" aria-labelledby="mod-h">
+    <h2 id="mod-h">About the model</h2>
+    <p class="hint">Multiple linear regression trained on 200 markets, with 80% used for training and 20% held back for testing.</p>
+    <div class="stats">
+      <div class="stat"><b>0.899</b><span>R² on test data</span></div>
+      <div class="stat"><b>1.78</b><span>RMSE, in thousand units</span></div>
+      <div class="stat"><b>1.46</b><span>Mean absolute error</span></div>
+    </div>
+    <div class="eq" id="eq"></div>
+    <p class="note">Newspaper spend has almost no measurable effect in this model, so treat its coefficient as close to zero. The model shows association in past data, not a guarantee. Budgets far outside the training range, or very different from the typical mix, can give unreliable estimates.</p>
+  </section>
+
+  <footer>Built from linregmodel.pkl. The model's coefficients are embedded in this page, so it runs entirely in your browser.</footer>
+</div>
+
+<script>
+// Coefficients exported from linregmodel.pkl (sklearn LinearRegression, features: TV, Radio, Newspaper)
+const M = {
+  b0: 2.979067338122629,
+  tv: 0.044729517468716326,
+  radio: 0.18919505423437652,
+  news: 0.0027611143413671935,
+  rmse: 1.78159966153345
+};
+const RANGE = { tv:[0.7,296.4], radio:[0,49.6], news:[0.3,114] };
+const AVG = { tv:147.0425, radio:23.264, news:30.554 };
+const KEYS = ['tv','radio','news'];
+const COLORS = { base:'var(--base)', tv:'var(--tv)', radio:'var(--radio)', news:'var(--news)' };
+const NAMES = { base:'Baseline', tv:'TV', radio:'Radio', news:'Newspaper' };
+
+const $ = id => document.getElementById(id);
+const state = { tv:AVG.tv, radio:AVG.radio, news:AVG.news };
+
+function fmt(n, d=2){ return n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function predict(s){ return M.b0 + M.tv*s.tv + M.radio*s.radio + M.news*s.news; }
+
+function render(){
+  const parts = {
+    base: M.b0,
+    tv: M.tv*state.tv,
+    radio: M.radio*state.radio,
+    news: M.news*state.news
+  };
+  const total = predict(state);
+  $('out').textContent = fmt(total,1);
+  $('units').textContent = '\u2248 ' + Math.round(total*1000).toLocaleString('en-US') + ' units sold';
+  $('err').textContent = 'Typical error on unseen data: \u00B1' + fmt(M.rmse,1) + ' thousand units (about ' + fmt(Math.max(total-M.rmse,0),1) + ' to ' + fmt(total+M.rmse,1) + ').';
+
+  const bar = $('bar'), legend = $('legend');
+  bar.innerHTML = ''; legend.innerHTML = '';
+  ['base','tv','radio','news'].forEach(k=>{
+    const share = total>0 ? (parts[k]/total)*100 : 0;
+    const seg = document.createElement('div');
+    seg.className='seg'; seg.style.width=share+'%'; seg.style.background=COLORS[k];
+    bar.appendChild(seg);
+    const row = document.createElement('div');
+    row.innerHTML = '<span class="dot" style="background:'+COLORS[k]+'"></span>'+NAMES[k]+'<b>'+fmt(parts[k],1)+'</b>';
+    legend.appendChild(row);
+  });
+
+  KEYS.forEach(k=>{
+    const v = state[k], [lo,hi] = RANGE[k];
+    $(k+'-f').textContent = (v>hi || (v<lo && v>0)) ? 'Outside the range the model was trained on, so treat this estimate with caution.' : '';
+  });
+}
+
+function sync(k, v, source){
+  v = Math.max(0, isNaN(v)?0:v);
+  state[k] = v;
+  if(source!=='n') $(k+'-n').value = Math.round(v*10)/10;
+  if(source!=='r') $(k+'-r').value = v;
+  render();
+}
+
+KEYS.forEach(k=>{
+  $(k+'-r').addEventListener('input', e=>sync(k, parseFloat(e.target.value),'r'));
+  $(k+'-n').addEventListener('input', e=>sync(k, parseFloat(e.target.value),'n'));
+  $(k+'-n').addEventListener('blur', e=>{ e.target.value = Math.round(state[k]*10)/10; });
+});
+$('avg').addEventListener('click', ()=>KEYS.forEach(k=>sync(k, AVG[k])));
+$('zero').addEventListener('click', ()=>KEYS.forEach(k=>sync(k, 0)));
+
+// Static sections
+(function(){
+  const rows = [['tv','TV',M.tv],['radio','Radio',M.radio],['news','Newspaper',M.news]];
+  $('eff').innerHTML = rows.map(([k,n,c])=>
+    '<tr><td><span class="dot" style="display:inline-block;margin-right:10px;background:'+COLORS[k]+'"></span>'+n+'</td>'+
+    '<td class="num">+'+fmt(c*1000,0)+' units</td>'+
+    '<td class="num">'+(k==='tv'?'Baseline':fmt(c/M.tv,1)+'\u00D7')+'</td></tr>').join('');
+  $('insight').textContent = 'Radio adds about ' + fmt(M.radio/M.tv,1) + ' times as many sales per dollar as TV in this data, while newspaper adds almost none. TV still matters because TV budgets are much larger.';
+  $('eq').textContent = 'Sales = ' + fmt(M.b0,3) + ' + ' + fmt(M.tv,4) + ' \u00D7 TV + ' + fmt(M.radio,4) + ' \u00D7 Radio + ' + fmt(M.news,4) + ' \u00D7 Newspaper';
+})();
+
+KEYS.forEach(k=>sync(k, AVG[k]));
+</script>
+</body>
+</html>
